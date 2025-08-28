@@ -26,7 +26,7 @@ data "aws_ami" "al2023" {
 #####################################
 resource "aws_key_pair" "this" {
   key_name   = "${var.project_name}-key"
-  public_key = file(pathexpand(var.public_key_path))  # <—
+  public_key = file(pathexpand(var.public_key_path)) # <—
   tags       = local.common_tags
 }
 
@@ -36,23 +36,23 @@ resource "aws_key_pair" "this" {
 resource "aws_security_group" "web_sg" {
   name        = "${var.project_name}-sg"
   description = "Security Group para web + SSH"
-  vpc_id      = aws_vpc.main.id   # <— antes era data.aws_vpc.default.id
+  vpc_id      = aws_vpc.main.id # <— antes era data.aws_vpc.default.id
 
   ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "HTTP"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
 
   ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "HTTPS"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
 
@@ -84,7 +84,7 @@ resource "aws_vpc" "main" {
   cidr_block           = "10.10.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
-  tags = merge(local.common_tags, { Name = "${var.project_name}-vpc" })
+  tags                 = merge(local.common_tags, { Name = "${var.project_name}-vpc" })
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -95,8 +95,9 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.10.1.0/24"
+  availability_zone       = "us-east-1a" # <- aqui pode usar a AZ
   map_public_ip_on_launch = true
-  tags = merge(local.common_tags, { Name = "${var.project_name}-subnet-a" })
+  tags                    = merge(local.common_tags, { Name = "${var.project_name}-subnet-a" })
 }
 
 resource "aws_route_table" "public" {
@@ -120,8 +121,8 @@ resource "aws_route_table_association" "public_a" {
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.al2023.id
   instance_type               = var.instance_type
-  subnet_id              = aws_subnet.public_a.id  # <— antes era data.aws_subnets.default.ids[0]
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  subnet_id                   = aws_subnet.public_a.id # <— antes era data.aws_subnets.default.ids[0]
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
   key_name                    = aws_key_pair.this.key_name
   associate_public_ip_address = true
 
@@ -179,7 +180,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
     status = "Enabled"
 
     # Aplique a regra ao bucket inteiro
-    filter {}  # <— adiciona o filtro vazio (equivalente a prefix "")
+    filter {} # <— adiciona o filtro vazio (equivalente a prefix "")
 
     noncurrent_version_expiration {
       noncurrent_days = 30

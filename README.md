@@ -24,3 +24,7 @@ make init
 make fmt validate
 make plan
 make apply
+
+## Image
+
+![Texto alternativo](https://imgur.com/a/bJiLVVV)

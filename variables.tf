@@ -25,7 +25,7 @@ variable "allowed_ssh_cidr" {
 variable "public_key_path" {
   description = "Caminho para a chave pública SSH a ser registrada como Key Pair."
   type        = string
-  default     = "~/.ssh/id_rsa.pub"
+  default     = "C:/Users/Vitor/.ssh/id_ed25519.pub"
 }
 
 variable "bucket_name_prefix" {

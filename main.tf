@@ -26,7 +26,7 @@ data "aws_ami" "al2023" {
 #####################################
 resource "aws_key_pair" "this" {
   key_name   = "${var.project_name}-key"
-  public_key = file(var.public_key_path)
+  public_key = file(pathexpand(var.public_key_path))  # <—
   tags       = local.common_tags
 }
 
@@ -36,7 +36,7 @@ resource "aws_key_pair" "this" {
 resource "aws_security_group" "web_sg" {
   name        = "${var.project_name}-sg"
   description = "Security Group para web + SSH"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.main.id   # <— antes era data.aws_vpc.default.id
 
   ingress {
     description = "HTTP"
@@ -76,16 +76,43 @@ resource "aws_security_group" "web_sg" {
   tags = local.common_tags
 }
 
-data "aws_vpc" "default" {
-  default = true
+
+############################
+# VPC mínima (própria)
+############################
+resource "aws_vpc" "main" {
+  cidr_block           = "10.10.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags = merge(local.common_tags, { Name = "${var.project_name}-vpc" })
 }
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags   = local.common_tags
 }
+
+resource "aws_subnet" "public_a" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.10.1.0/24"
+  map_public_ip_on_launch = true
+  tags = merge(local.common_tags, { Name = "${var.project_name}-subnet-a" })
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+  tags = local.common_tags
+}
+
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
 
 #####################################
 # Instância EC2 (Nginx via user_data)
@@ -93,8 +120,8 @@ data "aws_subnets" "default" {
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.al2023.id
   instance_type               = var.instance_type
-  subnet_id                   = data.aws_subnets.default.ids[0]
-  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  subnet_id              = aws_subnet.public_a.id  # <— antes era data.aws_subnets.default.ids[0]
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
   key_name                    = aws_key_pair.this.key_name
   associate_public_ip_address = true
 
@@ -150,6 +177,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle" {
   rule {
     id     = "noncurrent-versions-cleanup"
     status = "Enabled"
+
+    # Aplique a regra ao bucket inteiro
+    filter {}  # <— adiciona o filtro vazio (equivalente a prefix "")
 
     noncurrent_version_expiration {
       noncurrent_days = 30

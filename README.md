@@ -24,6 +24,7 @@ make init
 make fmt validate
 make plan
 make apply
+```
 
 ## Image
 

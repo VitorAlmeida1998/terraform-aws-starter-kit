@@ -28,4 +28,4 @@ make apply
 
 ## Image
 
-![Texto alternativo](https://imgur.com/a/bJiLVVV)
+![Texto alternativo](https://imgur.com/W45XeK8)
